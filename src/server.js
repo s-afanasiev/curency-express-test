@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
@@ -9,7 +11,7 @@ const swaggerOptions = require('./swagger-options');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET_KEY = 'SECRET_KEY';
+const SECRET_KEY = process.env.SECRET_KEY || 'SECRET_KEY';
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -81,5 +83,5 @@ app.get('/protected', authenticateToken, (req, res) => {
 
 //@ Запуск сервера
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on localhost:${PORT}`);
 });
