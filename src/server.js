@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -8,6 +9,8 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerJsDoc = require('swagger-jsdoc');
 
 const swaggerOptions = require('./swagger-options');
+const sequelize = require('./db');
+const User = require('./models/User');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +18,9 @@ const SECRET_KEY = process.env.SECRET_KEY || 'SECRET_KEY';
 
 app.use(cors());
 app.use(bodyParser.json());
+
+//@ Инициализация базы данных
+sequelize.sync();
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
@@ -34,10 +40,36 @@ const generateToken = (user) => {
   });
 };
 
-// Маршрут для аутентификации
-app.post('/login', (req, res) => {
+//@ Регистрация нового пользователя
+app.post('/register', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find((u) => u.username === username && u.password === password);
+
+  //@ Проверка, существует ли пользователь
+  // const existingUser = users.find((user) => user.username === username);
+  // if (existingUser) {
+  //   return res.status(400).json({ message: 'User already registered' });
+  // }
+  const existingUser = await User.findOne({ where: { username } });
+  if (existingUser) {
+    return res.status(400).json({ message: 'User already registered' });
+  }
+
+  //@ Хеширование пароля
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  //@ Создание нового пользователя
+  // const newUser = { id: users.length + 1, username, password: hashedPassword };
+  // users.push(newUser);
+  const newUser = await User.create({ username, password: hashedPassword });
+
+  res.status(201).json({ message: 'User registered successfully' });
+});
+
+// Маршрут для аутентификации
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  // const user = users.find((u) => u.username === username && u.password === password);
+  const user = await User.findOne({ where: { username } });
 
   if (user) {
     const token = generateToken(user);
